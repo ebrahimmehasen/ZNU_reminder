@@ -2,29 +2,24 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { monthDayMap, upcomingItems } from '@/lib/calendar';
-import {
-  WEEKDAYS_SAT_FIRST,
-  diffDays,
-  formatArabicDate,
-  formatArabicMonth,
-  formatArabicShort,
-  formatTime12,
-  monthGrid,
-  shiftMonth,
-  todayInCairo,
-} from '@/lib/dates';
+import { WEEKDAYS_SAT_FIRST, diffDays, formatArabicDate, formatTime12, monthGrid, shiftMonth, todayInCairo } from '@/lib/dates';
 import { APPROX_NOTE } from '@/lib/holidays';
 import EventForm from './EventForm';
 import { BellIcon, EditIcon, PlusIcon, PointLeft, PointRight, RepeatIcon, TrashIcon } from './icons';
 import ThemeToggle from './ThemeToggle';
 
 const monthFmt = new Intl.DateTimeFormat('ar-EG-u-nu-latn', { timeZone: 'UTC', month: 'long' });
+const weekdayFmt = new Intl.DateTimeFormat('ar-EG-u-nu-latn', { timeZone: 'UTC', weekday: 'long' });
 
 function monthName(date) {
   return monthFmt.format(new Date(`${date}T00:00:00Z`));
 }
 
-const MAX_CHIPS = 3;
+function weekdayName(date) {
+  return weekdayFmt.format(new Date(`${date}T00:00:00Z`));
+}
+
+const MAX_CHIPS = 2;
 const WEEKDAY_LETTERS = ['س', 'ح', 'ن', 'ث', 'ر', 'خ', 'ج'];
 
 function relativeLabel(today, date) {
@@ -34,10 +29,6 @@ function relativeLabel(today, date) {
   if (n === 2) return 'بعد بكرة';
   if (n <= 10) return `بعد ${n} أيام`;
   return `بعد ${n} يوم`;
-}
-
-function occasionClass(o) {
-  return o.official ? 'occ official' : 'occ';
 }
 
 export default function CalendarPage() {
@@ -157,62 +148,169 @@ export default function CalendarPage() {
   const ready = today && view;
 
   return (
-    <>
-      <header className="site-header">
-        <div className="header-inner">
-          <div className="brand">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="brand-logo" src="/znu-logo.jpg" alt="شعار جامعة الزقازيق الأهلية" width={52} height={52} />
-            <div className="brand-text">
-              <h1>مواعيدنا</h1>
-              <p className="tagline">جامعة الزقازيق الأهلية</p>
-            </div>
-          </div>
-          <div className="header-actions">
-            <button type="button" className="btn on-dark small" onClick={sendTest} disabled={testing}>
-              <BellIcon width={16} height={16} />
-              <span className="hide-xs">{testing ? 'بنبعت…' : 'جرّب التنبيه'}</span>
-            </button>
-            <ThemeToggle className="on-dark" />
+    <div className="shell">
+      <aside className="rail">
+        <div className="brand">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="brand-logo" src="/znu-logo.jpg" alt="شعار جامعة الزقازيق الأهلية" width={44} height={44} />
+          <div>
+            <p className="brand-name">مواعيدنا</p>
+            <p className="brand-sub">جامعة الزقازيق الأهلية</p>
           </div>
         </div>
-      </header>
 
-    <div className="app">
-      {status === 'error' ? (
-        <div className="banner" role="alert">
-          <p>
-            <strong>{loadError}</strong> المناسبات المصرية ظاهرة عادي، بس مواعيدكم مش هتظهر لحد ما الاتصال يرجع.
-          </p>
-          <button type="button" className="btn small" onClick={load}>
-            حاول تاني
+        <section className="today-card" aria-live="polite">
+          {ready && selected ? (
+            <>
+              <p className="tc-label">{selected < today ? 'فات' : relativeLabel(today, selected)}</p>
+              <div className="tc-date">
+                <span className="tc-num">{Number(selected.slice(8))}</span>
+                <div>
+                  <p className="tc-weekday">{weekdayName(selected)}</p>
+                  <p className="tc-month">
+                    {monthName(selected)} {selected.slice(0, 4)}
+                  </p>
+                </div>
+              </div>
+
+              {selectedDay.occasions.map((o) => (
+                <div key={o.title} className={`tc-occasion ${o.official ? 'holiday' : 'occasion'}`}>
+                  <p className="tc-occ-title">{o.title}</p>
+                  <p className="tc-occ-tags">
+                    {o.official ? 'إجازة رسمية' : 'مناسبة مصرية'}
+                    {o.approximate ? ` · ≈ ${APPROX_NOTE}` : ''}
+                  </p>
+                </div>
+              ))}
+
+              {status === 'loading' ? <p className="tc-empty">بنحمّل المواعيد…</p> : null}
+
+              {selectedDay.events.length ? (
+                <ul className="tc-events">
+                  {selectedDay.events.map((e) => (
+                    <li key={e.id} className="tc-event">
+                      <div className="tc-event-row">
+                        <span className="tc-time">{e.event_time ? formatTime12(e.event_time) : 'طول اليوم'}</span>
+                        {confirmDelete === e.id ? null : (
+                          <span className="tc-actions">
+                            <button type="button" className="icon-btn" aria-label={`عدّل ${e.title}`} onClick={() => setForm({ mode: 'edit', event: e })}>
+                              <EditIcon />
+                            </button>
+                            <button type="button" className="icon-btn" aria-label={`امسح ${e.title}`} onClick={() => setConfirmDelete(e.id)}>
+                              <TrashIcon />
+                            </button>
+                          </span>
+                        )}
+                      </div>
+                      <p className="tc-event-title">{e.title}</p>
+                      {e.notes ? <p className="tc-notes">{e.notes}</p> : null}
+                      {e.repeat_yearly || e.created_by ? (
+                        <p className="tc-meta">
+                          {e.repeat_yearly ? (
+                            <span className="repeat">
+                              <RepeatIcon /> كل سنة من {e.event_date.slice(0, 4)}
+                            </span>
+                          ) : null}
+                          {e.created_by ? <span>ضافه: {e.created_by}</span> : null}
+                        </p>
+                      ) : null}
+                      {confirmDelete === e.id ? (
+                        <div className="confirm" role="group" aria-label="تأكيد المسح">
+                          <span>نمسحه خالص؟</span>
+                          <button type="button" className="btn danger small" disabled={busyId === e.id} onClick={() => remove(e)}>
+                            {busyId === e.id ? 'بنمسح…' : 'امسح'}
+                          </button>
+                          <button type="button" className="btn outline small" onClick={() => setConfirmDelete(null)}>
+                            لأ
+                          </button>
+                        </div>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : status !== 'loading' && !selectedDay.occasions.length ? (
+                <p className="tc-empty">مفيش مواعيد في اليوم ده.</p>
+              ) : null}
+
+              <button type="button" className="btn primary block" onClick={() => setForm({ mode: 'add', date: selected })}>
+                <PlusIcon width={18} height={18} />
+                ضيف معاد في اليوم ده
+              </button>
+            </>
+          ) : (
+            <p className="tc-empty">بنجهّز الكالندر…</p>
+          )}
+        </section>
+
+        <section className="legend-box" aria-labelledby="legend-title">
+          <h2 id="legend-title" className="legend-title">
+            مفتاح الألوان
+          </h2>
+          <ul className="legend">
+            <li>
+              <i className="dot d-holiday" aria-hidden="true" /> إجازة رسمية
+            </li>
+            <li>
+              <i className="dot d-occasion" aria-hidden="true" /> مناسبة
+            </li>
+            <li>
+              <span className="approx-mark" aria-hidden="true">
+                ≈
+              </span>{' '}
+              تاريخ هجري تقريبي
+            </li>
+          </ul>
+        </section>
+
+        <div className="rail-actions">
+          <button type="button" className="btn outline grow" onClick={sendTest} disabled={testing}>
+            <BellIcon width={18} height={18} />
+            {testing ? 'بنبعت…' : 'جرّب التنبيه'}
           </button>
+          <ThemeToggle className="btn outline square" />
         </div>
-      ) : null}
+      </aside>
 
-      <main className="layout">
-        <section className="calendar" aria-label="الكالندر">
-          <div className="cal-head">
-            <div>
-              <h2 className="month-title" aria-live="polite">
-                {ready ? formatArabicMonth(view.year, view.month) : ' '}
-              </h2>
-              <p className="cal-sub">{ready ? monthSummary : ' '}</p>
-            </div>
-            <div className="cal-nav" role="group" aria-label="التنقل بين الشهور">
-              <button type="button" className="seg" aria-label="الشهر اللي فات" disabled={!ready} onClick={() => setView((v) => shiftMonth(v.year, v.month, -1))}>
-                <PointRight />
-              </button>
-              <button type="button" className="seg seg-text" disabled={!ready} onClick={() => goTo(today)}>
-                النهارده
-              </button>
-              <button type="button" className="seg" aria-label="الشهر الجاي" disabled={!ready} onClick={() => setView((v) => shiftMonth(v.year, v.month, 1))}>
-                <PointLeft />
-              </button>
-            </div>
+      <main className="main">
+        {status === 'error' ? (
+          <div className="banner" role="alert">
+            <p>
+              <strong>{loadError}</strong> المناسبات المصرية ظاهرة عادي، بس مواعيدكم مش هتظهر لحد ما الاتصال يرجع.
+            </p>
+            <button type="button" className="btn outline small" onClick={load}>
+              حاول تاني
+            </button>
           </div>
+        ) : null}
 
-          <div className="grid weekdays" aria-hidden="true">
+        <div className="top-row">
+          <div className="title-group">
+            <h1 className="month-title" aria-live="polite">
+              {ready ? (
+                <>
+                  {monthName(`${view.year}-${String(view.month).padStart(2, '0')}-01`)} <span className="year">{view.year}</span>
+                </>
+              ) : (
+                ' '
+              )}
+            </h1>
+            <p className="month-summary">{ready ? monthSummary : ' '}</p>
+          </div>
+          <div className="month-nav" role="group" aria-label="التنقل بين الشهور">
+            <button type="button" className="nav-btn" aria-label="الشهر اللي فات" disabled={!ready} onClick={() => setView((v) => shiftMonth(v.year, v.month, -1))}>
+              <PointRight />
+            </button>
+            <button type="button" className="nav-btn text" disabled={!ready} onClick={() => goTo(today)}>
+              النهارده
+            </button>
+            <button type="button" className="nav-btn" aria-label="الشهر الجاي" disabled={!ready} onClick={() => setView((v) => shiftMonth(v.year, v.month, 1))}>
+              <PointLeft />
+            </button>
+          </div>
+        </div>
+
+        <section aria-label="الكالندر">
+          <div className="weekdays" aria-hidden="true">
             {WEEKDAYS_SAT_FIRST.map((d, i) => (
               <div key={d} className="weekday">
                 <span className="wd-long">{d}</span>
@@ -221,18 +319,16 @@ export default function CalendarPage() {
             ))}
           </div>
 
-          <div className="grid days">
+          <div className="month-grid">
             {!ready
-              ? Array.from({ length: 35 }, (_, i) => <div key={i} className="day skeleton" />)
+              ? Array.from({ length: 35 }, (_, i) => <div key={i} className="cell skeleton" />)
               : cells.map((date, i) => {
-                  if (!date) return <div key={`b${i}`} className={`day blank ${i % 7 === 6 ? 'weekend' : ''}`} />;
+                  if (!date) return <div key={`b${i}`} className="cell blank" aria-hidden="true" />;
                   const info = dayMap.get(date) ?? { occasions: [], events: [] };
                   const official = info.occasions.some((o) => o.official);
-                  const all = [...info.occasions.map((o) => ({ o })), ...info.events.map((e) => ({ e }))];
+                  const mark = official ? 'holiday' : info.occasions.length ? 'occasion' : '';
                   const count = info.occasions.length + info.events.length;
-                  const cls = ['day', i % 7 === 6 && 'weekend', date === today && 'today', date === selected && 'selected', official && 'holiday', date < today && 'past']
-                    .filter(Boolean)
-                    .join(' ');
+                  const cls = ['cell', mark, date === today && 'today', date === selected && 'selected', date < today && 'past'].filter(Boolean).join(' ');
                   return (
                     <button
                       key={date}
@@ -242,194 +338,80 @@ export default function CalendarPage() {
                       aria-pressed={date === selected}
                       aria-label={`${formatArabicDate(date)}${count ? `، ${count} حاجة` : ''}`}
                     >
-                      <span className="num">{Number(date.slice(8))}</span>
-                      <span className="chips">
-                        {all.slice(0, MAX_CHIPS).map((x) =>
-                          x.o ? (
-                            <span key={`o-${x.o.title}`} className={`chip ${occasionClass(x.o)}`}>
-                              {x.o.title}
+                      <span className="cell-num">{Number(date.slice(8))}</span>
+                      {info.occasions.map((o) => (
+                        <span key={o.title} className={`cell-label ${o.official ? 'holiday' : 'occasion'}`}>
+                          {o.title}
+                          {o.approximate ? ' ≈' : ''}
+                        </span>
+                      ))}
+                      {info.events.length ? (
+                        <span className="chips">
+                          {info.events.slice(0, MAX_CHIPS).map((e) => (
+                            <span key={e.id} className="chip">
+                              {e.title}
                             </span>
-                          ) : (
-                            <span key={`e-${x.e.id}`} className="chip ev">
-                              {x.e.title}
-                            </span>
-                          ),
-                        )}
-                        {all.length > MAX_CHIPS ? <span className="more">+{all.length - MAX_CHIPS}</span> : null}
-                      </span>
-                      <span className="dots" aria-hidden="true">
-                        {info.occasions.slice(0, 1).map((o) => (
-                          <i key={o.title} className={`dot ${o.official ? 'd-official' : 'd-occ'}`} />
-                        ))}
-                        {info.events.slice(0, 3).map((e) => (
-                          <i key={e.id} className="dot d-ev" />
-                        ))}
-                      </span>
+                          ))}
+                          {info.events.length > MAX_CHIPS ? <span className="chip more">+{info.events.length - MAX_CHIPS}</span> : null}
+                        </span>
+                      ) : null}
+                      {date === today ? <span className="today-tag">النهارده</span> : null}
+                      {count ? (
+                        <span className="cell-dots" aria-hidden="true">
+                          {info.occasions.slice(0, 1).map((o) => (
+                            <i key={o.title} className={`dot ${o.official ? 'd-holiday' : 'd-occasion'}`} />
+                          ))}
+                          {info.events.slice(0, 3).map((e) => (
+                            <i key={e.id} className="dot d-event" />
+                          ))}
+                        </span>
+                      ) : null}
                     </button>
                   );
                 })}
           </div>
-
-          <ul className="legend" aria-label="مفتاح الألوان">
-            <li>
-              <i className="dot d-ev" /> مواعيدنا
-            </li>
-            <li>
-              <i className="dot d-official" /> إجازة رسمية
-            </li>
-            <li>
-              <i className="dot d-occ" /> مناسبة
-            </li>
-            <li>
-              <span className="approx-mark">≈</span> تاريخ هجري تقريبي
-            </li>
-          </ul>
         </section>
 
-        <aside className="side">
-          <section className="panel day-panel" aria-live="polite">
-            {ready && selected ? (
-              <>
-                <div className="panel-head">
-                  <div className="date-badge" aria-hidden="true">
-                    <span className="db-month">{monthName(selected)}</span>
-                    <span className="db-day">{Number(selected.slice(8))}</span>
-                  </div>
-                  <div className="day-title">
-                    <p className="eyebrow">{selected < today ? 'فات' : relativeLabel(today, selected)}</p>
-                    <h2>{formatArabicDate(selected)}</h2>
-                  </div>
-                </div>
-
-                <div className="panel-body">
-                  {selectedDay.occasions.map((o) => (
-                    <article key={o.title} className={`occasion-card ${o.official ? 'official' : ''}`}>
-                      <p className="occ-title">{o.title}</p>
-                      <p className="tags">
-                        <span className="tag">{o.official ? 'إجازة رسمية' : 'مناسبة مصرية'}</span>
-                        {o.approximate ? <span className="tag approx">≈ {APPROX_NOTE}</span> : null}
-                      </p>
-                    </article>
-                  ))}
-
-                  {status === 'loading' ? <p className="muted">بنحمّل المواعيد…</p> : null}
-
-                  {selectedDay.events.map((e) => {
-                    const [clock, period] = e.event_time ? formatTime12(e.event_time).split(' ') : [];
-                    return (
-                      <article key={e.id} className="event-card">
-                        <div className="event-time">
-                          {clock ? (
-                            <>
-                              <span className="t-main">{clock}</span>
-                              <span className="t-sub">{period === 'ص' ? 'صباحًا' : 'مساءً'}</span>
-                            </>
-                          ) : (
-                            <span className="t-sub">طول اليوم</span>
-                          )}
-                        </div>
-                        <div className="event-main">
-                          <h3>{e.title}</h3>
-                          {e.notes ? <p className="notes">{e.notes}</p> : null}
-                          {e.repeat_yearly || e.created_by ? (
-                            <p className="meta">
-                              {e.repeat_yearly ? (
-                                <span className="repeat">
-                                  <RepeatIcon /> كل سنة من {e.event_date.slice(0, 4)}
-                                </span>
-                              ) : null}
-                              {e.created_by ? <span>ضافه: {e.created_by}</span> : null}
-                            </p>
-                          ) : null}
-                          {confirmDelete === e.id ? (
-                            <div className="confirm" role="group" aria-label="تأكيد المسح">
-                              <span>نمسحه خالص؟</span>
-                              <button type="button" className="btn danger small" disabled={busyId === e.id} onClick={() => remove(e)}>
-                                {busyId === e.id ? 'بنمسح…' : 'امسح'}
-                              </button>
-                              <button type="button" className="btn ghost small" onClick={() => setConfirmDelete(null)}>
-                                لأ
-                              </button>
-                            </div>
-                          ) : null}
-                        </div>
-                        {confirmDelete === e.id ? null : (
-                          <div className="actions">
-                            <button type="button" className="icon-btn small" aria-label={`عدّل ${e.title}`} onClick={() => setForm({ mode: 'edit', event: e })}>
-                              <EditIcon />
-                            </button>
-                            <button type="button" className="icon-btn small" aria-label={`امسح ${e.title}`} onClick={() => setConfirmDelete(e.id)}>
-                              <TrashIcon />
-                            </button>
-                          </div>
-                        )}
-                      </article>
-                    );
-                  })}
-
-                  {status !== 'loading' && !selectedDay.events.length && !selectedDay.occasions.length ? (
-                    <p className="empty">مفيش مواعيد في اليوم ده.</p>
-                  ) : null}
-
-                  <button type="button" className="btn primary block" onClick={() => setForm({ mode: 'add', date: selected })}>
-                    <PlusIcon width={18} height={18} />
-                    ضيف معاد في اليوم ده
+        <section className="upcoming" aria-labelledby="up-title">
+          <h2 id="up-title">الجاي قريب</h2>
+          {!ready ? (
+            <p className="muted">…</p>
+          ) : upcoming.length ? (
+            <ol className="up-grid">
+              {upcoming.map((u) => (
+                <li key={`${u.kind}-${u.item.id ?? u.item.title}-${u.date}`}>
+                  <button type="button" className="up-card" onClick={() => goTo(u.date)}>
+                    <span className="up-top">
+                      <span className="up-date">
+                        {Number(u.date.slice(8))} {monthName(u.date)}
+                      </span>
+                      {u.kind === 'occasion' ? (
+                        <span className={`type-tag ${u.item.official ? 'holiday' : 'occasion'}`}>
+                          <i className={`dot ${u.item.official ? 'd-holiday' : 'd-occasion'}`} aria-hidden="true" />
+                          {u.item.official ? 'إجازة رسمية' : 'مناسبة'}
+                        </span>
+                      ) : u.item.event_time ? (
+                        <span className="type-tag event">{formatTime12(u.item.event_time)}</span>
+                      ) : null}
+                    </span>
+                    <span className="up-title">
+                      {u.item.title}
+                      {u.item.approximate ? (
+                        <span className="approx-mark" title={APPROX_NOTE}>
+                          {' '}≈
+                        </span>
+                      ) : null}
+                    </span>
+                    <span className="up-count">{relativeLabel(today, u.date)}</span>
                   </button>
-                </div>
-              </>
-            ) : (
-              <p className="muted pad">بنجهّز الكالندر…</p>
-            )}
-          </section>
-
-          <section className="panel upcoming" aria-labelledby="up-title">
-            <div className="panel-head simple">
-              <h2 id="up-title">الجاي قريب</h2>
-            </div>
-            {!ready ? (
-              <p className="muted pad">…</p>
-            ) : upcoming.length ? (
-              <ol>
-                {upcoming.map((u) => {
-                  const kindCls = u.kind === 'occasion' ? (u.item.official ? 'official' : 'occ') : 'ev';
-                  return (
-                    <li key={`${u.kind}-${u.item.id ?? u.item.title}-${u.date}`}>
-                      <button type="button" className="up-item" onClick={() => goTo(u.date)}>
-                        <span className={`mini-date ${kindCls} ${u.date === today ? 'now' : ''}`} aria-hidden="true">
-                          <span className="md-day">{Number(u.date.slice(8))}</span>
-                          <span className="md-month">{monthName(u.date)}</span>
-                        </span>
-                        <span className="what">
-                          <span className="what-title">
-                            {u.item.title}
-                            {u.item.approximate ? (
-                              <span className="approx-mark" title={APPROX_NOTE}>
-                                {' '}≈
-                              </span>
-                            ) : null}
-                          </span>
-                          <span className="sub">
-                            {relativeLabel(today, u.date)}
-                            {u.kind === 'event' && u.item.event_time ? ` · ${formatTime12(u.item.event_time)}` : ''}
-                            {u.kind === 'occasion' ? (u.item.official ? ' · إجازة رسمية' : ' · مناسبة') : ''}
-                          </span>
-                        </span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ol>
-            ) : (
-              <p className="empty">مفيش حاجة جاية قريب.</p>
-            )}
-          </section>
-        </aside>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="muted">مفيش حاجة جاية قريب.</p>
+          )}
+        </section>
       </main>
-
-      <footer className="site-footer">
-        <span>مواعيدنا · جامعة الزقازيق الأهلية</span>
-        <span>التذكير بيوصل جروب تليجرام كل يوم الصبح</span>
-      </footer>
 
       {form ? <EventForm key={form.mode + (form.event?.id ?? form.date)} form={form} onClose={() => setForm(null)} onSaved={onSaved} /> : null}
 
@@ -441,6 +423,5 @@ export default function CalendarPage() {
         ) : null}
       </div>
     </div>
-    </>
   );
 }
