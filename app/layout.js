@@ -9,16 +9,19 @@ export const metadata = {
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f3f5f2' },
-    { media: '(prefers-color-scheme: dark)', color: '#0d100c' },
-  ],
+  themeColor: '#121712',
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="ar" dir="rtl">
+    <html lang="ar" dir="rtl" data-theme="light" suppressHydrationWarning>
       <head>
+        {/* Apply the saved theme before first paint (light is the default). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "try{var t=localStorage.getItem('mawaeed:theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t}catch(e){}",
+          }}
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* Loaded with <link>, not next/font, so the build never needs network access. */}
