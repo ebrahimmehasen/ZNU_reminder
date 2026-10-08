@@ -104,7 +104,7 @@ export default function EventForm({ form, onClose, onSaved }) {
 
         <div className="fields">
           <label htmlFor="f-title">اسم المعاد</label>
-          <input {...field('title')} value={values.title} onChange={set('title')} maxLength={LIMITS.title} required autoFocus placeholder="مثلاً: عيد ميلاد سارة" />
+          <input {...field('title')} value={values.title} onChange={set('title')} maxLength={LIMITS.title} required autoFocus />
           {err('title')}
 
           <div className="row-2">
