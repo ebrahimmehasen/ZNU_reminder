@@ -2,37 +2,41 @@
   color-scheme: light dark;
   --font: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, system-ui, sans-serif;
 
-  --bg: #f6f3ee;
-  --surface: #fffdf9;
-  --surface-2: #f0ebe3;
-  --ink: #1f1b16;
-  --muted: #6f665b;
-  --line: #e4ddd2;
-  --accent: #0f6b5c;
-  --accent-hover: #0b5a4d;
+  /* Zagazig National University: logo green #50b646 on near-black */
+  --brand: #50b646;
+  --brand-dark: #151a14;
+
+  --bg: #f3f5f2;
+  --surface: #ffffff;
+  --surface-2: #edf1eb;
+  --ink: #151a14;
+  --muted: #5d675a;
+  --line: #dde4da;
+  --accent: #2e8a29;
+  --accent-hover: #25731f;
   --accent-ink: #ffffff;
-  --accent-soft: #dcefe9;
+  --accent-soft: #e2f3df;
   --occ: #8a5413;
   --occ-soft: #f6e9d4;
   --holiday: #ad3628;
   --holiday-soft: #f7e0db;
   --warn: #8a5413;
-  --shadow: 0 1px 2px rgb(31 27 22 / 0.05), 0 8px 24px rgb(31 27 22 / 0.06);
+  --shadow: 0 1px 2px rgb(21 26 20 / 0.05), 0 8px 24px rgb(21 26 20 / 0.07);
   --radius: 14px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #15130f;
-    --surface: #1d1a16;
-    --surface-2: #27231e;
-    --ink: #efe9e0;
-    --muted: #a59c90;
-    --line: #36312a;
-    --accent: #4fbfa8;
-    --accent-hover: #6fd0bc;
-    --accent-ink: #0b1714;
-    --accent-soft: #173a33;
+    --bg: #0d100c;
+    --surface: #161a15;
+    --surface-2: #1f251d;
+    --ink: #edf2ea;
+    --muted: #9aa596;
+    --line: #2c3429;
+    --accent: #5cc152;
+    --accent-hover: #76d06c;
+    --accent-ink: #0b1409;
+    --accent-soft: #1a3317;
     --occ: #e3a85e;
     --occ-soft: #3a2c19;
     --holiday: #f08d7f;
@@ -101,6 +105,12 @@ button:disabled {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 20px;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  border-bottom: 4px solid var(--brand);
+  background: var(--brand-dark);
+  color: #ffffff;
+  box-shadow: var(--shadow);
 }
 
 .brand {
@@ -110,18 +120,13 @@ button:disabled {
   min-width: 0;
 }
 
-.brand-mark {
+.brand-logo {
   flex: none;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 0 2px var(--brand);
 }
 
 .brand h1 {
@@ -131,7 +136,7 @@ button:disabled {
 }
 
 .tagline {
-  color: var(--muted);
+  color: rgb(255 255 255 / 0.7);
   font-size: 13px;
 }
 
@@ -170,6 +175,17 @@ button:disabled {
 .btn.primary:hover:not(:disabled) {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
+}
+
+.btn.on-dark {
+  border-color: rgb(255 255 255 / 0.25);
+  background: transparent;
+  color: #ffffff;
+}
+
+.btn.on-dark:hover:not(:disabled) {
+  border-color: var(--brand);
+  color: var(--brand);
 }
 
 .btn.ghost {
@@ -843,10 +859,13 @@ button.day:hover {
     display: none;
   }
 
-  .brand-mark {
-    width: 38px;
-    height: 38px;
-    font-size: 20px;
+  .brand-logo {
+    width: 44px;
+    height: 44px;
+  }
+
+  .topbar {
+    padding: 10px 12px;
   }
 
   .calendar {

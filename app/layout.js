@@ -1,8 +1,8 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'مواعيدنا',
-  description: 'كالندر مواعيد مشترك مع تنبيهات على تليجرام',
+  title: 'مواعيدنا | جامعة الزقازيق الأهلية',
+  description: 'كالندر مواعيد مشترك لجامعة الزقازيق الأهلية مع تنبيهات على تليجرام',
   robots: { index: false, follow: false, nocache: true, googleBot: { index: false, follow: false } },
 };
 
@@ -10,8 +10,8 @@ export const viewport = {
   width: 'device-width',
   initialScale: 1,
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#f6f3ee' },
-    { media: '(prefers-color-scheme: dark)', color: '#15130f' },
+    { media: '(prefers-color-scheme: light)', color: '#f3f5f2' },
+    { media: '(prefers-color-scheme: dark)', color: '#0d100c' },
   ],
 };
 

@@ -144,15 +144,14 @@ export default function CalendarPage() {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <span className="brand-mark" aria-hidden="true">
-            م
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="brand-logo" src="/znu-logo.jpg" alt="شعار جامعة الزقازيق الأهلية" width={56} height={56} />
           <div>
             <h1>مواعيدنا</h1>
-            <p className="tagline">كل مواعيدنا في مكان واحد، والتذكير بييجي على تليجرام</p>
+            <p className="tagline">جامعة الزقازيق الأهلية · التذكير بييجي على تليجرام</p>
           </div>
         </div>
-        <button type="button" className="btn ghost small" onClick={sendTest} disabled={testing}>
+        <button type="button" className="btn on-dark small" onClick={sendTest} disabled={testing}>
           <BellIcon width={16} height={16} />
           {testing ? 'بنبعت…' : 'جرّب التنبيه'}
         </button>
